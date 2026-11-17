@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+*.db
+data/processed/
+data/extracted/
+data/embeddings/
+data/training/
+data/uploads/
+logs/
+node_modules/
+dist/

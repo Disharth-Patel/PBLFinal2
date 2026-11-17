@@ -1,0 +1,11 @@
+.conversation-history{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.admin-actions{display:flex;gap:10px;align-items:center}
+.admin-actions input{display:none}
+.history-item{display:flex;border:1px solid #e1e7f0;border-radius:8px;overflow:hidden;background:#fff}
+.history-item button{border:0;background:#fff;color:#53617a;padding:7px 10px;font-size:11px}
+.history-item .history-delete{color:#a16672;border-left:1px solid #edf0f5;padding:7px}
+.model-panel{margin-top:24px}
+.model-form{display:grid;grid-template-columns:2fr repeat(3,1fr) auto;gap:12px;align-items:end}
+.model-form label{display:grid;gap:6px;color:#6d798d;font-size:12px}
+.model-form input,.model-form select{border:1px solid #dce2ed;border-radius:7px;padding:9px;color:#53617a}
+@media(max-width:800px){.model-form{grid-template-columns:1fr}}

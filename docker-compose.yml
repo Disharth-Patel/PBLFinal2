@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      ADMISSIONS_DATABASE_URL: mysql+pymysql://admissions:${MYSQL_PASSWORD:?set MYSQL_PASSWORD}@mysql:3306/admissions
+      ADMISSIONS_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      ADMISSIONS_JWT_SECRET: ${ADMISSIONS_JWT_SECRET:?set ADMISSIONS_JWT_SECRET}
+      ADMISSIONS_ENVIRONMENT: production
+      ADMISSIONS_CORS_ORIGINS: ${ADMISSIONS_CORS_ORIGINS:?set ADMISSIONS_CORS_ORIGINS}
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: admissions
+      MYSQL_USER: admissions
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

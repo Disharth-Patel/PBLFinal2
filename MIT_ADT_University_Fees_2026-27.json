@@ -1,0 +1,585 @@
+{
+  "institution": "MIT-ADT University",
+  "academic_years": [
+    "2026-27",
+    "2027-28",
+    "2028-29",
+    "2029-30"
+  ],
+  "currency": "INR",
+  "source_workbook": "MIT_ADT_University_Fees_2026-27.xlsx",
+  "official_fee_page": "https://mituniversity.ac.in/Admissions/admission_program_fees/",
+  "data_notes": [
+    "Blank year-wise fee values mean no figure was supplied, not zero.",
+    "Fees may exclude hostel, mess, deposits, examination and other charges.",
+    "Confirm amounts and course availability against the official fee schedule before payment or admission decisions."
+  ],
+  "courses": [
+    {
+      "department": "Engineering & Computing",
+      "course": "Aerospace Engineering",
+      "annual_fees_inr": {
+        "2026-27": 247000,
+        "2027-28": 255000,
+        "2028-29": 276000,
+        "2029-30": 282000
+      },
+      "total_fees_inr": 1060000,
+      "notes": null
+    },
+    {
+      "department": "Engineering & Computing",
+      "course": "Mechanical Engineering",
+      "annual_fees_inr": {
+        "2026-27": 247000,
+        "2027-28": 255000,
+        "2028-29": 276000,
+        "2029-30": 282000
+      },
+      "total_fees_inr": 1060000,
+      "notes": null
+    },
+    {
+      "department": "Engineering & Computing",
+      "course": "Robotics & AI",
+      "annual_fees_inr": {
+        "2026-27": 247000,
+        "2027-28": 255000,
+        "2028-29": 276000,
+        "2029-30": 282000
+      },
+      "total_fees_inr": 1060000,
+      "notes": null
+    },
+    {
+      "department": "Engineering & Computing",
+      "course": "Civil Engineering",
+      "annual_fees_inr": {
+        "2026-27": 203000,
+        "2027-28": 207000,
+        "2028-29": 220000,
+        "2029-30": 230000
+      },
+      "total_fees_inr": 860000,
+      "notes": null
+    },
+    {
+      "department": "Engineering & Computing",
+      "course": "Electronics & Communication Engineering",
+      "annual_fees_inr": {
+        "2026-27": 247000,
+        "2027-28": 253000,
+        "2028-29": 270000,
+        "2029-30": 280000
+      },
+      "total_fees_inr": 1050000,
+      "notes": null
+    },
+    {
+      "department": "Engineering & Computing",
+      "course": "Electronics & Computer Engineering",
+      "annual_fees_inr": {
+        "2026-27": 247000,
+        "2027-28": 253000,
+        "2028-29": 270000,
+        "2029-30": 280000
+      },
+      "total_fees_inr": 1050000,
+      "notes": null
+    },
+    {
+      "department": "AI",
+      "course": "B.Tech – School of AI",
+      "annual_fees_inr": {
+        "2026-27": 287000,
+        "2027-28": 315000,
+        "2028-29": 335000,
+        "2029-30": 335000
+      },
+      "total_fees_inr": 1272000,
+      "notes": null
+    },
+    {
+      "department": "Architecture",
+      "course": "B.Arch",
+      "annual_fees_inr": {
+        "2026-27": 220000,
+        "2027-28": 233000,
+        "2028-29": 233000,
+        "2029-30": 247000
+      },
+      "total_fees_inr": 1183000,
+      "notes": null
+    },
+    {
+      "department": "Architecture",
+      "course": "M.Arch – Traditional Indian Architectural Knowledge System",
+      "annual_fees_inr": {
+        "2026-27": 120000,
+        "2027-28": 123500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 243500,
+      "notes": null
+    },
+    {
+      "department": "Business & Computer Applications",
+      "course": "BBA",
+      "annual_fees_inr": {
+        "2026-27": 210000,
+        "2027-28": 220000,
+        "2028-29": 233500,
+        "2029-30": 150000
+      },
+      "total_fees_inr": 813500,
+      "notes": null
+    },
+    {
+      "department": "Business & Computer Applications",
+      "course": "BBA Finance – ACCA",
+      "annual_fees_inr": {
+        "2026-27": 261000,
+        "2027-28": 272000,
+        "2028-29": 292000,
+        "2029-30": null
+      },
+      "total_fees_inr": 825000,
+      "notes": null
+    },
+    {
+      "department": "Business & Computer Applications",
+      "course": "BCA",
+      "annual_fees_inr": {
+        "2026-27": 130000,
+        "2027-28": 140000,
+        "2028-29": 85000,
+        "2029-30": null
+      },
+      "total_fees_inr": 355000,
+      "notes": null
+    },
+    {
+      "department": "Business & Computer Applications",
+      "course": "MCA",
+      "annual_fees_inr": {
+        "2026-27": 215000,
+        "2027-28": 230000,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 445000,
+      "notes": null
+    },
+    {
+      "department": "Education & Humanities",
+      "course": "B.Ed",
+      "annual_fees_inr": {
+        "2026-27": 60500,
+        "2027-28": 64000,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 124500,
+      "notes": null
+    },
+    {
+      "department": "Education & Humanities",
+      "course": "B.A.–B.Ed (ITEP Middle Stage)",
+      "annual_fees_inr": {
+        "2026-27": 150000,
+        "2027-28": 150000,
+        "2028-29": 150000,
+        "2029-30": 153500
+      },
+      "total_fees_inr": 603500,
+      "notes": null
+    },
+    {
+      "department": "Education & Humanities",
+      "course": "M.A. Education",
+      "annual_fees_inr": {
+        "2026-27": 36000,
+        "2027-28": 39500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 75500,
+      "notes": null
+    },
+    {
+      "department": "Education & Humanities",
+      "course": "B.A. English Research",
+      "annual_fees_inr": {
+        "2026-27": 73000,
+        "2027-28": 76500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 149500,
+      "notes": null
+    },
+    {
+      "department": "Education & Humanities",
+      "course": "B.A. Administration",
+      "annual_fees_inr": {
+        "2026-27": 151000,
+        "2027-28": 161000,
+        "2028-29": 177000,
+        "2029-30": 50000
+      },
+      "total_fees_inr": 539000,
+      "notes": null
+    },
+    {
+      "department": "Education & Humanities",
+      "course": "M.A. Public Administration",
+      "annual_fees_inr": {
+        "2026-27": 151000,
+        "2027-28": 165000,
+        "2028-29": 50000,
+        "2029-30": null
+      },
+      "total_fees_inr": 366000,
+      "notes": null
+    },
+    {
+      "department": "Fine Arts",
+      "course": "BFA Applied Art",
+      "annual_fees_inr": {
+        "2026-27": 185000,
+        "2027-28": 185000,
+        "2028-29": 195000,
+        "2029-30": 198500
+      },
+      "total_fees_inr": 763500,
+      "notes": null
+    },
+    {
+      "department": "Fine Arts",
+      "course": "BFA Painting / Sculpture",
+      "annual_fees_inr": {
+        "2026-27": 185000,
+        "2027-28": 125000,
+        "2028-29": 135000,
+        "2029-30": 138500
+      },
+      "total_fees_inr": 583500,
+      "notes": null
+    },
+    {
+      "department": "Fine Arts",
+      "course": "MFA Applied Art",
+      "annual_fees_inr": {
+        "2026-27": 125000,
+        "2027-28": 128500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 253500,
+      "notes": null
+    },
+    {
+      "department": "Fine Arts",
+      "course": "MFA Painting / Sculpture",
+      "annual_fees_inr": {
+        "2026-27": 125000,
+        "2027-28": 103500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 228500,
+      "notes": null
+    },
+    {
+      "department": "Fine Arts",
+      "course": "MFA Art Therapy",
+      "annual_fees_inr": {
+        "2026-27": 160000,
+        "2027-28": 163500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 323500,
+      "notes": null
+    },
+    {
+      "department": "Design",
+      "course": "B.Des",
+      "annual_fees_inr": {
+        "2026-27": 475000,
+        "2027-28": 490000,
+        "2028-29": 505000,
+        "2029-30": 515000
+      },
+      "total_fees_inr": 1985000,
+      "notes": null
+    },
+    {
+      "department": "Design",
+      "course": "B.Des Fashion",
+      "annual_fees_inr": {
+        "2026-27": 475000,
+        "2027-28": 490000,
+        "2028-29": 505000,
+        "2029-30": 530000
+      },
+      "total_fees_inr": 2000000,
+      "notes": null
+    },
+    {
+      "department": "Design",
+      "course": "M.Des",
+      "annual_fees_inr": {
+        "2026-27": 475000,
+        "2027-28": 483500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 958500,
+      "notes": null
+    },
+    {
+      "department": "Performing Arts",
+      "course": "Bachelor of Performing Arts",
+      "annual_fees_inr": {
+        "2026-27": 60000,
+        "2027-28": 60000,
+        "2028-29": 65000,
+        "2029-30": 68500
+      },
+      "total_fees_inr": 253500,
+      "notes": null
+    },
+    {
+      "department": "Performing Arts",
+      "course": "Master of Performing Arts",
+      "annual_fees_inr": {
+        "2026-27": 55000,
+        "2027-28": 58500,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 113500,
+      "notes": null
+    },
+    {
+      "department": "Maritime Studies",
+      "course": "B.Tech Marine Engineering",
+      "annual_fees_inr": {
+        "2026-27": 292000,
+        "2027-28": 250000,
+        "2028-29": 250000,
+        "2029-30": 263500
+      },
+      "total_fees_inr": 1055500,
+      "notes": "Hostel listed separately"
+    },
+    {
+      "department": "Maritime Studies",
+      "course": "B.Sc. Nautical Science",
+      "annual_fees_inr": {
+        "2026-27": 330000,
+        "2027-28": 305000,
+        "2028-29": 308500,
+        "2029-30": null
+      },
+      "total_fees_inr": 943500,
+      "notes": "Hostel listed separately"
+    },
+    {
+      "department": "Maritime Studies",
+      "course": "Diploma Nautical Science",
+      "annual_fees_inr": {
+        "2026-27": 330000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 330000,
+      "notes": null
+    },
+    {
+      "department": "Maritime Studies",
+      "course": "Electro Technical Officer Certificate",
+      "annual_fees_inr": {
+        "2026-27": 125500,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": 125500,
+      "notes": null
+    },
+    {
+      "department": "Allied Healthcare",
+      "course": "Bachelor of Science",
+      "annual_fees_inr": {
+        "2026-27": 250000,
+        "2027-28": 250000,
+        "2028-29": 250000,
+        "2029-30": 250000
+      },
+      "total_fees_inr": 1000000,
+      "notes": "Course specialization not specified in prior response"
+    },
+    {
+      "department": "Other",
+      "course": "MBA Innovation & Entrepreneurship",
+      "annual_fees_inr": {
+        "2026-27": 480000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Other",
+      "course": "PG Diploma in Innovation",
+      "annual_fees_inr": {
+        "2026-27": 483500,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Other",
+      "course": "PG Diploma Automotive Clay & Digital Sculpting",
+      "annual_fees_inr": {
+        "2026-27": 325000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Law",
+      "course": "BBA LLB",
+      "annual_fees_inr": {
+        "2026-27": 180000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Law",
+      "course": "LLB",
+      "annual_fees_inr": {
+        "2026-27": 120000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Law",
+      "course": "LLM",
+      "annual_fees_inr": {
+        "2026-27": 80000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Commerce",
+      "course": "B.Com",
+      "annual_fees_inr": {
+        "2026-27": 143000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Science",
+      "course": "B.Sc. Chemistry / Applied Statistics",
+      "annual_fees_inr": {
+        "2026-27": 90000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Engineering PG",
+      "course": "M.Tech Civil / Mechanical / E&C",
+      "annual_fees_inr": {
+        "2026-27": 160000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Engineering PG",
+      "course": "M.Tech Fire Engineering",
+      "annual_fees_inr": {
+        "2026-27": 300000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    },
+    {
+      "department": "Engineering PG",
+      "course": "M.Tech by Research",
+      "annual_fees_inr": {
+        "2026-27": 150000,
+        "2027-28": null,
+        "2028-29": null,
+        "2029-30": null
+      },
+      "total_fees_inr": null,
+      "notes": "Only 2026-27 fee supplied"
+    }
+  ],
+  "additional_charges": [
+    {
+      "item": "Marine Engineering hostel",
+      "amount_or_details": "₹1,00,000 per year"
+    },
+    {
+      "item": "Nautical Science hostel",
+      "amount_or_details": "₹1,00,000 per year"
+    },
+    {
+      "item": "Mess and laundry",
+      "amount_or_details": "Actual contractor rates"
+    },
+    {
+      "item": "DGS/IME charges",
+      "amount_or_details": "1% of applicable fee"
+    },
+    {
+      "item": "General note",
+      "amount_or_details": "Fees may exclude hostel, mess, deposits, examination and other charges. Verify with official admissions fee page."
+    },
+    {
+      "item": "Source",
+      "amount_or_details": "https://mituniversity.ac.in/Admissions/admission_program_fees/"
+    }
+  ]
+}
