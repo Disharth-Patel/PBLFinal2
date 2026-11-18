@@ -97,21 +97,32 @@ class IndexResult(BaseModel):
     status: str
 
 
-class RetrievalRequest(BaseModel):
-    query: str
-    limit: int = 5
-
-
 class FollowUpRequest(BaseModel):
     lead_id: int
     due_at: str
     notes: str = ""
 
 
+class RetrievalRequest(BaseModel):
+    query: str
+    limit: int = 5
+
+
 class LeadUpdateRequest(BaseModel):
     status: str | None = None
     interest_level: str | None = None
     notes: str | None = None
+
+
+class CourseInterestRequest(BaseModel):
+    school: str = ""
+    department: str = ""
+    programme: str
+    status: str = "Interested"
+
+
+class NotificationReadRequest(BaseModel):
+    read: bool = True
 
 
 class ProfileRequest(BaseModel):

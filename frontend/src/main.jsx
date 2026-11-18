@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ArrowRight, Bot, BookOpen, CheckCircle2, GraduationCap, LayoutDashboard, LogOut, MessageCircle, Mic, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Bell, Bot, BookOpen, CheckCircle2, GraduationCap, LayoutDashboard, LogOut, MessageCircle, Mic, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
 import "./styles.css";
 import "./admin.css";
 
@@ -44,9 +44,15 @@ function Auth({ mode, setMode, onSuccess }) {
 }
 
 function Dashboard({ user, page, setPage, signOut }) {
-  return <div className="app-shell"><aside><div className="brand"><div className="brand-mark"><Sparkles size={18} /></div><span>ADT <b>Admissions AI</b></span></div><div className="side-label">WORKSPACE</div><SideButton active={page === "overview"} onClick={() => setPage("overview")} icon={<LayoutDashboard />} text="Overview" /> <SideButton active={page === "chat"} onClick={() => setPage("chat")} icon={<MessageCircle />} text="AI Assistant" /> <SideButton active={page === "leads"} onClick={() => setPage("leads")} icon={<Users />} text="My enquiry" /> <SideButton active={page === "profile"} onClick={() => setPage("profile")} icon={<GraduationCap />} text="My profile" />{user.role === "admin" && <><div className="side-label">ADMIN</div><SideButton active={page === "admin"} onClick={() => setPage("admin")} icon={<ShieldCheck />} text="Admin overview" /></>}<button className="logout" onClick={signOut}><LogOut size={17} /> Sign out</button></aside><div className="dashboard-main"><div className="topbar"><span className="status"><span className="pulse" /> Local AI connected</span><div className="avatar">{user.name[0]}</div></div>{page === "chat" ? <Chat user={user} /> : page === "admin" ? <Admin /> : page === "leads" ? <LeadForm /> : page === "profile" ? <Profile /> : <Overview user={user} setPage={setPage} />}</div></div>;
+  return <div className="app-shell"><aside><div className="brand"><div className="brand-mark"><Sparkles size={18} /></div><span>ADT <b>Admissions AI</b></span></div><div className="side-label">WORKSPACE</div><SideButton active={page === "overview"} onClick={() => setPage("overview")} icon={<LayoutDashboard />} text="Overview" /> <SideButton active={page === "chat"} onClick={() => setPage("chat")} icon={<MessageCircle />} text="AI Assistant" />{user.role !== "admin" && <SideButton active={page === "leads"} onClick={() => setPage("leads")} icon={<Users />} text="My enquiry" />} <SideButton active={page === "profile"} onClick={() => setPage("profile")} icon={<GraduationCap />} text="My profile" />{user.role === "admin" && <><div className="side-label">ADMIN</div><SideButton active={page === "admin"} onClick={() => setPage("admin")} icon={<ShieldCheck />} text="Admin overview" /><SideButton active={page === "review-enquiries"} onClick={() => setPage("review-enquiries")} icon={<Users />} text="Review enquiries" /></>}<button className="logout" onClick={signOut}><LogOut size={17} /> Sign out</button></aside><div className="dashboard-main"><div className="topbar"><span className="status"><span className="pulse" /> Local AI connected</span><Notifications /><div className="avatar">{user.name[0]}</div></div>{page === "chat" ? <Chat user={user} /> : page === "admin" || page === "review-enquiries" ? <Admin /> : page === "leads" && user.role !== "admin" ? <LeadForm /> : page === "profile" ? <Profile /> : <Overview user={user} setPage={setPage} />}</div></div>;
 }
 function SideButton({ active, onClick, icon, text }) { return <button className={`side-button ${active ? "active" : ""}`} onClick={onClick}>{icon}{text}</button>; }
+function Notifications() {
+  const [items, setItems] = useState([]);
+  useEffect(() => { request("/notifications").then(setItems).catch(() => {}); }, []);
+  const unread = items.filter(item => !item.read).length;
+  return <div className="notifications" title={unread ? `${unread} unread notifications` : "No new notifications"}><Bell size={18} />{unread > 0 && <span>{unread}</span>}</div>;
+}
 function Overview({ user, setPage }) { return <section className="content"><div className="welcome"><div><span className="eyebrow">STUDENT DASHBOARD</span><h1>Good to see you, {user.name.split(" ")[0]}.</h1><p>Your admission journey starts with a good question.</p></div><button className="button" onClick={() => setPage("chat")}>Ask the assistant <ArrowRight size={16} /></button></div><div className="overview-grid"><div className="stat-card dark"><Sparkles /><span>AI assistant</span><strong>Ready to help</strong><small>Grounded in official sources</small></div><div className="stat-card"><CheckCircle2 /><span>Knowledge base</span><strong>Verified sources</strong><small>Institutional information</small></div><div className="stat-card"><GraduationCap /><span>Next step</span><strong>Tell us your goals</strong><small>We personalise your guidance</small></div></div><div className="tip"><Sparkles /><div><b>Start with anything.</b><p>Try asking “Which programmes are available in design?” or “What documents do I need?”</p></div></div></section>; }
 function Chat() {
   const [input, setInput] = useState("");
@@ -94,12 +100,12 @@ function Chat() {
   const removeConversation = async (id) => { await request(`/conversations/${id}`, { method: "DELETE" }); setHistory(rows => rows.filter(row => row.id !== id)); if (conversationId === id) { setConversationId(null); setMessages([]); } };
   return <section className="chat-page"><div className="chat-heading"><div><span className="eyebrow">AI ADMISSIONS ASSISTANT</span><h1>What would you like to know?</h1></div><button className="outline-button" onClick={() => { setMessages([]); setConversationId(null); }}>New conversation</button></div><div className="conversation-history">{history.slice(0, 5).map(row => <div className="history-item" key={row.id}><button onClick={() => loadConversation(row.id)}>{row.title}</button><button className="history-delete" onClick={() => removeConversation(row.id)}>×</button></div>)}</div><div className="chat-window">{messages.map((m, i) => <div key={i} className={`message-row ${m.role}`}><div className="message-avatar">{m.role === "assistant" ? <Bot size={16} /> : "You"}</div><div className="message"><p>{m.content}</p>{m.sources?.length > 0 && <small>Sources: {m.sources.map(s => `${s.source} (${s.location})`).join(", ")}</small>}</div></div>)}{busy && <div className="typing">Local assistant is thinking…</div>}</div><form className="chat-input" onSubmit={send}><input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask about admissions, programmes, eligibility…" /><button type="button" className={`voice-button ${listening ? "listening" : ""}`} onClick={toggleBrowserSpeech} aria-label={listening ? "Stop speech-to-text" : "Start speech-to-text"} aria-pressed={listening}><Mic size={19} /></button><button className="send-button"><Send size={18} /></button></form>{voiceMessage && <div className="typing">{voiceMessage}</div>}</section>;
 }
-function LeadForm() { const [form, setForm] = useState({ programme: "", academic_qualification: "", notes: "" }); const [done, setDone] = useState(false); const submit = async e => { e.preventDefault(); await request("/leads", { method: "POST", body: JSON.stringify(form) }); setDone(true); }; return <section className="content narrow"><span className="eyebrow">ADMISSION ENQUIRY</span><h1>Keep the conversation going.</h1><p className="lede">Share a few details and an admissions counsellor can follow up with you.</p>{done ? <div className="success"><CheckCircle2 /><h3>Enquiry received</h3><p>Your details have been securely saved.</p></div> : <form className="lead-form" onSubmit={submit}><label>Programme of interest<input required value={form.programme} onChange={e => setForm({ ...form, programme: e.target.value })} placeholder="e.g. Computer Science" /></label><label>Academic qualification<input value={form.academic_qualification} onChange={e => setForm({ ...form, academic_qualification: e.target.value })} placeholder="e.g. 12th standard / Bachelor's" /></label><label>Anything else? <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows="4" /></label><button className="button">Submit enquiry <ArrowRight size={16} /></button></form>}</section>; }
+function LeadForm() { const [form, setForm] = useState({ programme: "", academic_qualification: "", notes: "" }); const [leads, setLeads] = useState([]); const [done, setDone] = useState(false); useEffect(() => { request("/leads").then(setLeads).catch(() => {}); }, []); const submit = async e => { e.preventDefault(); const result = await request("/leads", { method: "POST", body: JSON.stringify(form) }); setLeads(rows => [{ ...form, ...result, created_at: new Date().toISOString() }, ...rows]); setDone(true); }; return <section className="content narrow"><span className="eyebrow">ADMISSION ENQUIRY</span><h1>Keep the conversation going.</h1><p className="lede">Share a few details and an admissions counsellor can follow up with you.</p>{done ? <div className="success"><CheckCircle2 /><h3>Enquiry received</h3><p>Your details have been securely saved.</p></div> : <form className="lead-form" onSubmit={submit}><label>Programme of interest<input required value={form.programme} onChange={e => setForm({ ...form, programme: e.target.value })} placeholder="e.g. Computer Science" /></label><label>Academic qualification<input value={form.academic_qualification} onChange={e => setForm({ ...form, academic_qualification: e.target.value })} placeholder="e.g. 12th standard / Bachelor's" /></label><label>Anything else? <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows="4" /></label><button className="button">Submit enquiry <ArrowRight size={16} /></button></form>}<div className="panel"><div className="panel-heading"><h3>My enquiry history</h3><span>{leads.length} records</span></div>{leads.map(lead => <div className="audit-row" key={lead.id}><b>{lead.programme || "Programme not specified"}</b><span>{lead.status}</span><small>{new Date(lead.created_at).toLocaleString()}</small></div>)}</div></section>; }
 function Profile() {
   const [form, setForm] = useState({ phone: "", academic_qualification: "", interested_programme: "", preferred_department: "", admission_year: "", communication_language: "English", interests: "" });
   const [saved, setSaved] = useState(false);
   useEffect(() => { request("/profile").then(profile => setForm(previous => ({ ...previous, ...profile }))).catch(() => {}); }, []);
-  const save = async event => { event.preventDefault(); await request("/profile", { method: "PUT", body: JSON.stringify(form) }); setSaved(true); };
+  const save = async event => { event.preventDefault(); await request("/profile", { method: "PUT", body: JSON.stringify(form) }); if (form.interested_programme.trim()) await request("/course-interests", { method: "POST", body: JSON.stringify({ programme: form.interested_programme, department: form.preferred_department }) }); setSaved(true); };
   return <section className="content narrow"><span className="eyebrow">STUDENT PROFILE</span><h1>Personalise your guidance.</h1><p className="lede">Save your interests once so future admissions conversations can be more relevant.</p><form className="lead-form" onSubmit={save}>{[["phone","Phone number"],["academic_qualification","Academic qualification"],["interested_programme","Programme of interest"],["preferred_department","Preferred department"],["admission_year","Admission year"],["communication_language","Preferred language"],["interests","Additional interests"]].map(([key,label]) => <label key={key}>{label}{key === "interests" ? <textarea rows="3" value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} /> : <input value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} />}</label>)}{saved && <div className="success">Profile saved.</div>}<button className="button">Save profile <CheckCircle2 size={16} /></button></form></section>; }
 function Admin() {
   const [data, setData] = useState(null);
@@ -108,14 +114,23 @@ function Admin() {
   const [documents, setDocuments] = useState([]);
   const [escalations, setEscalations] = useState([]);
   const [followUps, setFollowUps] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [courseInterests, setCourseInterests] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
+  const [enquirySearch, setEnquirySearch] = useState("");
+  const [enquiryStatus, setEnquiryStatus] = useState("All");
+  const [enquiryPage, setEnquiryPage] = useState(1);
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [indexing, setIndexing] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
   const [modelConfig, setModelConfig] = useState({ model_name: "qwen2.5:1.5b-instruct", temperature: 0.0, top_p: 1.0, context_length: 4096, max_tokens: 512 });
   const [models, setModels] = useState([]);
   const [message, setMessage] = useState("");
   const refresh = async () => {
     try {
-      const [overview, leadRows, auditRows, config, ollama, documentRows, escalationRows, followUpRows, analyticsData] = await Promise.all([
+      const [overview, leadRows, auditRows, config, ollama, documentRows, escalationRows, followUpRows, userRows, activityRows, interestRows, analyticsData] = await Promise.all([
         request("/admin/overview"),
         request("/admin/leads"),
         request("/admin/audit-logs"),
@@ -124,6 +139,9 @@ function Admin() {
         request("/admin/documents"),
         request("/admin/escalations"),
         request("/admin/follow-ups"),
+        request("/admin/users"),
+        request("/admin/activity"),
+        request("/admin/course-interests"),
         request("/admin/analytics"),
       ]);
       setData(overview);
@@ -134,6 +152,9 @@ function Admin() {
       setDocuments(documentRows);
       setEscalations(escalationRows);
       setFollowUps(followUpRows);
+      setUsers(userRows);
+      setActivities(activityRows);
+      setCourseInterests(interestRows);
       setAnalytics(analyticsData);
     } catch (error) {
       setMessage(error.message);
@@ -141,11 +162,15 @@ function Admin() {
   };
   useEffect(() => { refresh(); }, []);
   const indexKnowledge = async () => {
+    if (indexing) return;
+    setIndexing(true);
+    setMessage("Indexing knowledge documents…");
     try {
       const result = await request("/knowledge/index", { method: "POST" });
-      setMessage(`Indexed ${result.embedded} chunks.`);
+      setMessage(`Knowledge indexed successfully: ${result.embedded} chunks are ready for retrieval.`);
       await refresh();
     } catch (error) { setMessage(error.message); }
+    finally { setIndexing(false); }
   };
   const updateLead = async (lead, status) => {
     try {
@@ -171,11 +196,11 @@ function Admin() {
     } catch (error) { setMessage(error.message); }
     event.target.value = "";
   };
-  const updateFollowUp = async (item, status) => {
-    try { await request(`/admin/follow-ups/${item.id}`, { method: "PATCH", body: JSON.stringify({ status }) }); await refresh(); } catch (error) { setMessage(error.message); }
-  };
   const updateEscalation = async (item, status) => {
     try { await request(`/admin/escalations/${item.id}`, { method: "PATCH", body: JSON.stringify({ status }) }); await refresh(); } catch (error) { setMessage(error.message); }
+  };
+  const updateFollowUp = async (item, status) => {
+    try { await request(`/admin/follow-ups/${item.id}`, { method: "PATCH", body: JSON.stringify({ status }) }); await refresh(); } catch (error) { setMessage(error.message); }
   };
   const runDocumentOcr = async (document) => {
     try {
@@ -185,12 +210,16 @@ function Admin() {
     } catch (error) { setMessage(error.message); }
   };
   const runEvaluation = async () => {
+    if (evaluating) return;
+    setEvaluating(true);
+    setMessage("Preparing and running the knowledge evaluation…");
     try {
       await request("/admin/evaluation/dataset", { method: "POST" });
       const result = await request("/admin/evaluation/run", { method: "POST" });
       setEvaluation(result);
       setMessage(`Evaluation completed across ${result.cases} cases.`);
     } catch (error) { setMessage(error.message); }
+    finally { setEvaluating(false); }
   };
   const exportLeads = async () => {
     const response = await fetch(`${API}/admin/leads/export`, { headers: { Authorization: "Bearer " + localStorage.token } });
@@ -201,16 +230,25 @@ function Admin() {
     link.href = url; link.download = "admission-leads.csv"; link.click();
     URL.revokeObjectURL(url);
   };
+  const filteredEnquiries = leads
+    .filter(lead => enquiryStatus === "All" || lead.status === enquiryStatus)
+    .filter(lead => `${lead.student_name} ${lead.student_email} ${lead.programme || ""} ${lead.notes || ""}`.toLowerCase().includes(enquirySearch.toLowerCase()));
+  const enquiriesPerPage = 8;
+  const pageCount = Math.max(1, Math.ceil(filteredEnquiries.length / enquiriesPerPage));
+  const visibleEnquiries = filteredEnquiries.slice((enquiryPage - 1) * enquiriesPerPage, enquiryPage * enquiriesPerPage);
   return <section className="content">
-    <div className="welcome"><div><span className="eyebrow">ADMINISTRATION</span><h1>System overview.</h1><p className="lede">Live operational signals from your admissions workspace.</p></div><div className="admin-actions"><label className="outline-button">Upload document<input type="file" hidden accept=".pdf,.docx,.pptx,.xlsx,.csv,.txt" onChange={uploadDocument} /></label><button className="button" onClick={indexKnowledge}><BookOpen size={16} /> Re-index knowledge</button></div></div>
+    <div className="welcome"><div><span className="eyebrow">ADMINISTRATION</span><h1>System overview.</h1><p className="lede">Live operational signals from your admissions workspace.</p></div><div className="admin-actions"><label className="outline-button">Upload document<input type="file" hidden accept=".pdf,.docx,.pptx,.xlsx,.csv,.txt" onChange={uploadDocument} /></label><button className="button" onClick={indexKnowledge} disabled={indexing}><BookOpen size={16} /> {indexing ? "Indexing…" : "Re-index knowledge"}</button></div></div>
     {message && <div className="tip"><ShieldCheck size={18} /><div>{message}</div></div>}
-    <div className="overview-grid">{Object.entries(data || { students: "—", conversations: "—", leads: "—", indexed_documents: "—" }).map(([key, value]) => <div className="stat-card" key={key}><span>{key.replace("_", " ")}</span><strong>{value}</strong><small>Current total</small></div>)}</div>
+    <div className="overview-grid">{Object.entries(data || { students: "—", conversations: "—", leads: "—", indexed_documents: "—" }).filter(([key]) => ["total_registered_students", "active_students", "conversations", "total_admission_enquiries", "total_course_interests", "pending_enquiries", "converted_leads", "indexed_knowledge_documents"].includes(key)).map(([key, value]) => <div className="stat-card" key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong><small>Current total</small></div>)}</div>
     <div className="panel analytics-panel"><div className="panel-heading"><h3>Analytics snapshot</h3><button className="outline-button" onClick={exportLeads}>Export leads CSV</button></div><div className="analytics-row"><span>Pending escalations <b>{analytics?.escalations_pending ?? "—"}</b></span><span>Lead statuses <b>{Object.keys(analytics?.lead_status || {}).length}</b></span><span>Programmes <b>{Object.keys(analytics?.programme || {}).length}</b></span><span>Feedback ratings <b>{Object.keys(analytics?.feedback || {}).length}</b></span></div></div>
-    <div className="panel analytics-panel"><div className="panel-heading"><h3>Knowledge evaluation</h3><button className="outline-button" onClick={runEvaluation}>Run evaluation</button></div>{evaluation ? <div className="analytics-row"><span>Retrieval hit rate <b>{(evaluation.hit_rate * 100).toFixed(1)}%</b></span><span>Unavailable precision <b>{(evaluation.unavailable_precision * 100).toFixed(1)}%</b></span><span>Cases <b>{evaluation.cases}</b></span><small>{evaluation.report_path}</small></div> : <p className="lede">Run the evaluation after indexing to measure retrieval coverage and safe handling of unsupported questions.</p>}</div>
-    <div className="admin-grid"><div className="panel"><div className="panel-heading"><h3>Lead management</h3><span>{leads.length} records</span></div>{leads.length === 0 ? <p className="lede">No leads yet.</p> : leads.map(lead => <div className="lead-row" key={lead.id}><div><b>{lead.programme || "Programme not specified"}</b><small>{lead.status} · {lead.interest_level}</small></div><select value={lead.status} onChange={event => updateLead(lead, event.target.value)}><option>New</option><option>Contacted</option><option>Interested</option><option>Qualified</option><option>Follow-up Required</option><option>Escalated</option><option>Converted</option><option>Not Interested</option></select></div>)}</div><div className="panel"><div className="panel-heading"><h3>Audit activity</h3><span>{logs.length} recent</span></div>{logs.slice(0, 8).map(log => <div className="audit-row" key={log.id}><b>{log.action}</b><span>{log.resource}</span><small>{new Date(log.created_at).toLocaleString()}</small></div>)}</div></div>
+    <div className="panel analytics-panel"><div className="panel-heading"><h3>Knowledge evaluation</h3><button className="outline-button" onClick={runEvaluation} disabled={evaluating}>{evaluating ? "Evaluating…" : "Run evaluation"}</button></div>{evaluation ? <div className="analytics-row"><span>Retrieval hit rate <b>{(evaluation.hit_rate * 100).toFixed(1)}%</b></span><span>Unavailable precision <b>{(evaluation.unavailable_precision * 100).toFixed(1)}%</b></span><span>Cases <b>{evaluation.cases}</b></span><small>{evaluation.report_path}</small></div> : <p className="lede">Run the evaluation to measure retrieval coverage and safe handling of unsupported questions.</p>}</div>
+    <div className="panel enquiry-panel"><div className="panel-heading"><div><h3>Review enquiries</h3><p className="panel-subtitle">Enquiries submitted by users. Administrators can review details and update their status.</p></div><span>{filteredEnquiries.length} of {leads.length} records</span></div><div className="enquiry-filters"><input aria-label="Search enquiries" placeholder="Search customer, email, programme or notes" value={enquirySearch} onChange={event => { setEnquirySearch(event.target.value); setEnquiryPage(1); }} /><select aria-label="Filter enquiries by status" value={enquiryStatus} onChange={event => { setEnquiryStatus(event.target.value); setEnquiryPage(1); }}><option>All</option><option>New</option><option>Submitted</option><option>Contacted</option><option>Interested</option><option>Qualified</option><option>Follow-up Required</option><option>Escalated</option><option>Converted</option><option>Not Interested</option></select></div>{visibleEnquiries.length === 0 ? <p className="lede">No enquiries match the current filters.</p> : <div className="enquiry-table"><div className="enquiry-table-header"><span>Customer</span><span>Enquiry</span><span>Submitted</span><span>Status</span><span>Action</span></div>{visibleEnquiries.map(lead => <div className="enquiry-table-row" key={lead.id}><div><b>{lead.student_name}</b><small>{lead.student_email}</small></div><div><b>{lead.programme || "Programme not specified"}</b><small>{lead.academic_qualification || "Qualification not provided"}</small></div><small>{new Date(lead.created_at).toLocaleString()}</small><select value={lead.status} onChange={event => updateLead(lead, event.target.value)}><option>New</option><option>Submitted</option><option>Contacted</option><option>Interested</option><option>Qualified</option><option>Follow-up Required</option><option>Escalated</option><option>Converted</option><option>Not Interested</option></select><button className="outline-button" onClick={() => setSelectedEnquiry(lead)}>View details</button></div>)}</div>}<div className="pagination"><button className="outline-button" disabled={enquiryPage === 1} onClick={() => setEnquiryPage(page => page - 1)}>Previous</button><span>Page {enquiryPage} of {pageCount}</span><button className="outline-button" disabled={enquiryPage >= pageCount} onClick={() => setEnquiryPage(page => page + 1)}>Next</button></div></div>
+    <div className="admin-grid"><div className="panel"><div className="panel-heading"><h3>Audit activity</h3><span>{logs.length} recent</span></div>{logs.slice(0, 8).map(log => <div className="audit-row" key={log.id}><b>{log.action}</b><span>{log.resource}</span><small>{new Date(log.created_at).toLocaleString()}</small></div>)}</div><div className="panel"><div className="panel-heading"><h3>Admin tools</h3><span>Workspace</span></div><p className="lede">Use Review enquiries to inspect user submissions. New enquiries can only be created from the student workspace.</p></div></div>
     <div className="panel model-panel"><div className="panel-heading"><h3>Ollama model configuration</h3><span>{models.length} local models</span></div><form className="model-form" onSubmit={saveModel}><label>Active model<select value={modelConfig.model_name} onChange={event => setModelConfig({ ...modelConfig, model_name: event.target.value })}>{models.map(model => <option key={model.name}>{model.name}</option>)}</select></label><label>Temperature<input type="number" min="0" max="2" step="0.1" value={modelConfig.temperature} onChange={event => setModelConfig({ ...modelConfig, temperature: Number(event.target.value) })} /></label><label>Top-p<input type="number" min="0" max="1" step="0.05" value={modelConfig.top_p} onChange={event => setModelConfig({ ...modelConfig, top_p: Number(event.target.value) })} /></label><label>Context length<input type="number" min="256" value={modelConfig.context_length} onChange={event => setModelConfig({ ...modelConfig, context_length: Number(event.target.value) })} /></label><button className="button">Save model settings</button></form></div>
     <div className="admin-grid"><div className="panel"><div className="panel-heading"><h3>Knowledge documents</h3><span>{documents.length} uploaded</span></div>{documents.map(document => <div className="audit-row" key={document.id}><b>{document.filename}</b><span>v{document.version} · {document.category}</span>{document.status === "ocr-required" && <button className="outline-button" onClick={() => runDocumentOcr(document)}>Run OCR</button>}<small>{document.status}</small></div>)}</div><div className="panel"><div className="panel-heading"><h3>Counsellor escalations</h3><span>{escalations.length} requests</span></div>{escalations.length === 0 ? <p className="lede">No escalations.</p> : escalations.map(item => <div className="audit-row" key={item.id}><b>{item.reason}</b><select value={item.status} onChange={event => updateEscalation(item, event.target.value)}><option>Pending</option><option>In Progress</option><option>Resolved</option><option>Cancelled</option></select><small>{new Date(item.created_at).toLocaleString()}</small></div>)}</div></div>
-    <div className="panel model-panel"><div className="panel-heading"><h3>Follow-up queue</h3><span>{followUps.length} scheduled</span></div>{followUps.length === 0 ? <p className="lede">No follow-ups scheduled.</p> : followUps.map(item => <div className="audit-row" key={item.id}><b>Lead #{item.lead_id}</b><span>{new Date(item.due_at).toLocaleString()}</span><select value={item.status} onChange={event => updateFollowUp(item, event.target.value)}><option>Pending</option><option>In Progress</option><option>Completed</option><option>Cancelled</option></select></div>)}</div>
+    <div className="admin-grid"><div className="panel"><div className="panel-heading"><h3>User management</h3><span>{users.length} accounts</span></div>{users.slice(0, 20).map(item => <div className="audit-row" key={item.id}><b>{item.name}</b><span>{item.email} · {item.enquiries} enquiries · {item.conversations} conversations</span><small>{item.interested_course || "No course selected"} · {item.login_status ? "Active" : "Inactive"}</small></div>)}</div><div className="panel"><div className="panel-heading"><h3>Course interests</h3><span>{courseInterests.length} tracked</span></div>{courseInterests.length === 0 ? <p className="lede">No course interests recorded.</p> : courseInterests.slice(0, 20).map(item => <div className="audit-row" key={item.id}><b>{item.programme}</b><span>{item.student_name} · {item.school || "School not specified"}</span><small>{item.status}</small></div>)}</div></div>
+    <div className="admin-grid"><div className="panel"><div className="panel-heading"><h3>Student activity</h3><span>{activities.length} events</span></div>{activities.slice(0, 12).map(item => <div className="audit-row" key={item.id}><b>{item.activity_type.replaceAll("_", " ")}</b><span>{item.description}</span><small>{new Date(item.created_at).toLocaleString()}</small></div>)}</div><div className="panel"><div className="panel-heading"><h3>Follow-up queue</h3><span>{followUps.length} scheduled</span></div>{followUps.length === 0 ? <p className="lede">No follow-ups scheduled.</p> : followUps.map(item => <div className="audit-row" key={item.id}><b>Lead #{item.lead_id}</b><span>{new Date(item.due_at).toLocaleString()}</span><select value={item.status} onChange={event => updateFollowUp(item, event.target.value)}><option>Pending</option><option>In Progress</option><option>Completed</option><option>Cancelled</option></select></div>)}</div></div>
+    {selectedEnquiry && <div className="modal-backdrop" onClick={() => setSelectedEnquiry(null)}><div className="modal enquiry-modal" onClick={event => event.stopPropagation()}><button type="button" className="close" onClick={() => setSelectedEnquiry(null)}>×</button><span className="eyebrow">ENQUIRY #{selectedEnquiry.id}</span><h2>{selectedEnquiry.student_name}</h2><div className="detail-grid"><b>Customer email</b><span>{selectedEnquiry.student_email}</span><b>Phone</b><span>{selectedEnquiry.student_phone || "Not provided"}</span><b>Programme</b><span>{selectedEnquiry.programme || "Not specified"}</span><b>Academic qualification</b><span>{selectedEnquiry.academic_qualification || "Not provided"}</span><b>Admission year</b><span>{selectedEnquiry.admission_year || "Not provided"}</span><b>Preferred department</b><span>{selectedEnquiry.preferred_department || "Not provided"}</span><b>Interests</b><span>{selectedEnquiry.interests || "Not provided"}</span><b>Submitted</b><span>{new Date(selectedEnquiry.created_at).toLocaleString()}</span></div><label className="detail-notes">Requirements / description<textarea value={selectedEnquiry.notes || ""} readOnly rows="4" /></label><label className="detail-status">Status<select value={selectedEnquiry.status} onChange={event => { updateLead(selectedEnquiry, event.target.value); setSelectedEnquiry({ ...selectedEnquiry, status: event.target.value }); }}><option>New</option><option>Submitted</option><option>Contacted</option><option>Interested</option><option>Qualified</option><option>Follow-up Required</option><option>Escalated</option><option>Converted</option><option>Not Interested</option></select></label></div></div>}
   </section>;
 }
 createRoot(document.getElementById("root")).render(<App />);

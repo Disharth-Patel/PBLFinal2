@@ -5,34 +5,48 @@ The original institutional files remain in the project root and are never modifi
 
 ## Current status
 
-The application now includes the first complete end-to-end slice: persistent SQLite
-accounts, student authentication, local Ollama chat grounded in extracted sources,
-conversation history, lead capture, admin metrics, and a responsive React frontend.
+The application includes persistent SQLite accounts, student and administrator
+authentication, local Ollama chat grounded in extracted sources, conversation
+history, admission enquiries, course interests, activity tracking, notifications,
+follow-up scheduling, admin metrics, and a responsive React frontend.
 See:
 
 - [Data inventory](documentation/data-inventory.md)
 - [Architecture roadmap](documentation/architecture-roadmap.md)
 
-## Local backend quick start
+## Run the whole project
+
+### 1. Start the backend
 
 ```powershell
-cd D:\PBLFinal2\backend
-deactivate
-Remove-Item -Recurse -Force D:\PBLFinal2\backend\.venv
-python -m venv D:\PBLFinal2\backend\.venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+Set-Location D:\PBLFinal2\backend
+if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .\.venv }
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+& .\.venv\Scripts\Activate.ps1
+python -m pip install -r .\requirements.txt
 python -m uvicorn app.main:app --reload
+```
+
+Keep this terminal running. The `Set-Location` command moves to the backend folder
+before the virtual environment and requirements are used.
+If installation reports `Access is denied` for a file inside `.venv`, stop any
+running backend with `Ctrl+C`, open a new PowerShell window, and run:
+
+```powershell
+Set-Location D:\PBLFinal2\backend
+& .\.venv\Scripts\python.exe -m pip install -r .\requirements.txt
 ```
 
 The service info check is available at `http://127.0.0.1:8000/`, and the API health
 check is available at `http://127.0.0.1:8000/health`.
 
-Seed local demo accounts:
+### 2. Seed demo accounts
+
+Run this in a second PowerShell terminal after the backend starts:
 
 ```powershell
-cd D:\PBLFinal2\backend
-python scripts\seed_demo.py
+Set-Location D:\PBLFinal2\backend
+& .\.venv\Scripts\python.exe .\scripts\seed_demo.py
 ```
 
 Demo credentials:
@@ -40,10 +54,12 @@ Demo credentials:
 - Admin: `admin@mitadt.local` / `admin-demo-123`
 - Student: `student@mitadt.local` / `student-demo-123`
 
-## Frontend
+### 3. Start the frontend
+
+Run this in a third PowerShell terminal:
 
 ```powershell
-cd D:\PBLFinal2\frontend
+Set-Location D:\PBLFinal2\frontend
 npm install
 npm run dev
 ```
@@ -84,15 +100,18 @@ represented as working features until implemented and tested.
   `/api/v1/voice/synthesize`; unavailable runtimes return an explicit `503`.
 - WebSocket streaming: available at `/api/v1/chat/stream?token=...`; it uses local
   Ollama generation and reports token/done events.
-- Admin workspace: overview metrics, knowledge re-indexing, lead status updates,
-  follow-up APIs and audit activity are available after signing in as the demo admin.
+- Admin workspace: overview metrics, user management, course-interest tracking,
+  student activity, knowledge re-indexing, lead status updates, follow-up APIs,
+  notifications and audit activity are available after signing in as the demo admin.
 - Student support workflows: profile saving, response feedback and counsellor
   escalation are available from the authenticated API and profile workspace.
 - Conversation history can be loaded and deleted by its owning student. Administrators
   can select an installed local Ollama model and save generation settings.
 - Administrators can upload supported documents with size/type validation, track
   document versions, extract them immediately, review escalations, update follow-up
-  statuses, view analytics and export leads as CSV.
+  statuses, view analytics and export leads as CSV. User-visible enquiry status,
+  callback and course-interest events are persisted and exposed through the shared
+  backend so they remain available after refresh or a new login.
 - MySQL: SQLAlchemy configuration and Alembic migration files are included; set
   `ADMISSIONS_DATABASE_URL` to a MySQL URL and run `alembic upgrade head`.
 - Authentication uses bcrypt password hashes and HS256 JWT access tokens. Existing

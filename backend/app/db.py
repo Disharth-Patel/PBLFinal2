@@ -105,6 +105,40 @@ class FollowUp(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class CourseInterest(Base):
+    __tablename__ = "course_interests"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    school: Mapped[str] = mapped_column(String(200), default="")
+    department: Mapped[str] = mapped_column(String(200), default="")
+    programme: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(40), default="Interested")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ActivityEvent(Base):
+    __tablename__ = "activity_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    activity_type: Mapped[str] = mapped_column(String(80))
+    description: Mapped[str] = mapped_column(Text)
+    programme: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    lead_id: Mapped[int | None] = mapped_column(ForeignKey("leads.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    event_type: Mapped[str] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

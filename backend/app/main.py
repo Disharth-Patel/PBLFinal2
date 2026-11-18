@@ -12,23 +12,25 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db import AuditLog, Conversation, DocumentVersion, Escalation, Feedback, FollowUp, KnowledgeDocument, Lead, Message, ModelConfiguration, SessionLocal, StudentProfile, User, init_db
+from app.db import ActivityEvent, AuditLog, Conversation, CourseInterest, DocumentVersion, Escalation, Feedback, FollowUp, KnowledgeDocument, Lead, Message, ModelConfiguration, Notification, SessionLocal, StudentProfile, User, init_db
 from app.schemas import (
     AuthResponse,
     ChatRequest,
     ChatResponse,
+    CourseInterestRequest,
     ExtractionResult,
     EscalationRequest,
     FeedbackRequest,
-    FollowUpRequest,
     HealthResponse,
     ReadinessResponse,
+    FollowUpRequest,
     IndexResult,
     LeadRequest,
     LeadUpdateRequest,
     LoginRequest,
     ConversationUpdateRequest,
     ModelConfigurationRequest,
+    NotificationReadRequest,
     StatusUpdateRequest,
     DocumentUpdateRequest,
     OllamaStatus,
@@ -104,6 +106,34 @@ def db_session():
         yield db
     finally:
         db.close()
+
+
+def record_activity(
+    db: Session,
+    user_id: int,
+    activity_type: str,
+    description: str,
+    programme: str | None = None,
+    lead_id: int | None = None,
+) -> None:
+    db.add(
+        ActivityEvent(
+            user_id=user_id,
+            activity_type=activity_type,
+            description=description,
+            programme=programme,
+            lead_id=lead_id,
+        )
+    )
+
+
+def notify_user(db: Session, user_id: int, event_type: str, title: str, message: str) -> None:
+    db.add(Notification(user_id=user_id, event_type=event_type, title=title, message=message))
+
+
+def notify_admins(db: Session, event_type: str, title: str, message: str) -> None:
+    for admin_id in db.scalars(select(User.id).where(User.role == "admin")):
+        notify_user(db, admin_id, event_type, title, message)
 
 
 def current_user(authorization: str | None = Header(default=None), db: Session = Depends(db_session)) -> User:
@@ -364,6 +394,7 @@ def register(request: RegisterRequest, db: Session = Depends(db_session)) -> Aut
         raise HTTPException(409, "An account with this email already exists")
     user = User(name=request.name.strip(), email=email, password_hash=hash_password(request.password))
     db.add(user)
+    record_activity(db, user.id, "registration", "Created an admissions account")
     db.commit()
     db.refresh(user)
     return AuthResponse(token=create_token(user.id, user.role), user={"id": user.id, "name": user.name, "email": user.email, "role": user.role})
@@ -380,6 +411,7 @@ def login(request: LoginRequest, db: Session = Depends(db_session)) -> AuthRespo
     if needs_password_upgrade(user.password_hash):
         user.password_hash = hash_password(request.password)
     audit(db, user.id, "login", "user")
+    record_activity(db, user.id, "login", "Signed in to the admissions workspace")
     db.commit()
     return AuthResponse(token=create_token(user.id, user.role), user={"id": user.id, "name": user.name, "email": user.email, "role": user.role})
 
@@ -387,6 +419,113 @@ def login(request: LoginRequest, db: Session = Depends(db_session)) -> AuthRespo
 @app.get("/api/v1/auth/me")
 def me(user: User = Depends(current_user)) -> dict:
     return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
+
+
+@app.get("/api/v1/notifications")
+def notifications(user: User = Depends(current_user), db: Session = Depends(db_session)) -> list[dict]:
+    rows = db.scalars(
+        select(Notification)
+        .where(Notification.user_id == user.id)
+        .order_by(Notification.created_at.desc())
+        .limit(50)
+    ).all()
+    return [
+        {
+            "id": row.id,
+            "event_type": row.event_type,
+            "title": row.title,
+            "message": row.message,
+            "read": row.read_at is not None,
+            "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+@app.patch("/api/v1/notifications/{notification_id}")
+def update_notification(
+    notification_id: int,
+    request: NotificationReadRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(db_session),
+) -> dict:
+    notification = db.scalar(
+        select(Notification).where(Notification.id == notification_id, Notification.user_id == user.id)
+    )
+    if not notification:
+        raise HTTPException(404, "Notification not found")
+    notification.read_at = datetime.utcnow() if request.read else None
+    db.commit()
+    return {"id": notification.id, "read": notification.read_at is not None}
+
+
+@app.get("/api/v1/leads")
+def own_leads(user: User = Depends(current_user), db: Session = Depends(db_session)) -> list[dict]:
+    rows = db.scalars(select(Lead).where(Lead.user_id == user.id).order_by(Lead.created_at.desc())).all()
+    return [
+        {
+            "id": row.id,
+            "programme": row.programme,
+            "status": row.status,
+            "interest_level": row.interest_level,
+            "notes": row.notes,
+            "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+@app.post("/api/v1/course-interests")
+def add_course_interest(
+    request: CourseInterestRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(db_session),
+) -> dict:
+    programme = request.programme.strip()
+    if not programme:
+        raise HTTPException(422, "Programme cannot be empty")
+    interest = db.scalar(
+        select(CourseInterest).where(
+            CourseInterest.user_id == user.id,
+            CourseInterest.programme == programme,
+        )
+    )
+    if interest:
+        interest.school = request.school.strip()
+        interest.department = request.department.strip()
+        interest.status = request.status.strip() or "Interested"
+    else:
+        interest = CourseInterest(
+            user_id=user.id,
+            school=request.school.strip(),
+            department=request.department.strip(),
+            programme=programme,
+            status=request.status.strip() or "Interested",
+        )
+        db.add(interest)
+    record_activity(db, user.id, "course_interest", f"Marked {programme} as an interested programme", programme)
+    notify_admins(db, "course_interest", "New course interest", f"{user.name} is interested in {programme}.")
+    db.commit()
+    db.refresh(interest)
+    return {"id": interest.id, "programme": interest.programme, "status": interest.status}
+
+
+@app.get("/api/v1/course-interests")
+def own_course_interests(user: User = Depends(current_user), db: Session = Depends(db_session)) -> list[dict]:
+    rows = db.scalars(
+        select(CourseInterest).where(CourseInterest.user_id == user.id).order_by(CourseInterest.updated_at.desc())
+    ).all()
+    return [
+        {
+            "id": row.id,
+            "school": row.school,
+            "department": row.department,
+            "programme": row.programme,
+            "status": row.status,
+            "updated_at": row.updated_at.isoformat(),
+        }
+        for row in rows
+    ]
 
 
 @app.get("/api/v1/profile")
@@ -404,6 +543,7 @@ def update_profile(request: ProfileRequest, user: User = Depends(current_user), 
     for field in request.model_fields:
         setattr(profile, field, getattr(request, field).strip())
     audit(db, user.id, "update", "student_profile")
+    record_activity(db, user.id, "profile_updated", "Updated their admission profile", request.interested_programme or None)
     db.commit()
     return {"status": "saved"}
 
@@ -427,6 +567,8 @@ def request_escalation(request: EscalationRequest, user: User = Depends(current_
     escalation = Escalation(user_id=user.id, conversation_id=request.conversation_id, reason=request.reason.strip())
     db.add(escalation)
     audit(db, user.id, "create", "escalation")
+    record_activity(db, user.id, "callback_request", "Requested counsellor guidance")
+    notify_admins(db, "callback_request", "New counsellor request", f"{user.name} requested counsellor guidance.")
     db.commit()
     db.refresh(escalation)
     return {"id": escalation.id, "status": escalation.status}
@@ -482,6 +624,12 @@ async def chat(request: ChatRequest, user: User = Depends(current_user), db: Ses
         conversation = Conversation(user_id=user.id, title=request.message[:80])
         db.add(conversation)
         db.flush()
+    record_activity(
+        db,
+        user.id,
+        "assistant_question",
+        "Asked the AI Assistant an admissions question",
+    )
     previous = [{"role": message.role, "content": message.content} for message in conversation.messages]
     scope = understand_query(request.message, previous)
     index = load_index(settings.vector_index_path)
@@ -546,9 +694,15 @@ async def chat(request: ChatRequest, user: User = Depends(current_user), db: Ses
 
 @app.post("/api/v1/leads")
 def create_lead(request: LeadRequest, user: User = Depends(current_user), db: Session = Depends(db_session)) -> dict:
+    if user.role == "admin":
+        raise HTTPException(403, "Administrators can review enquiries but cannot submit them")
     lead = Lead(user_id=user.id, programme=request.programme, academic_qualification=request.academic_qualification, notes=request.notes)
     db.add(lead)
+    db.flush()
     audit(db, user.id, "create", "lead")
+    record_activity(db, user.id, "enquiry_submitted", "Submitted an admission enquiry", request.programme, lead.id)
+    notify_user(db, user.id, "enquiry_received", "Enquiry received", "Your admission enquiry has been submitted.")
+    notify_admins(db, "new_enquiry", "New admission enquiry", f"{user.name} submitted an enquiry for {request.programme or 'an unspecified programme'}.")
     db.commit()
     db.refresh(lead)
     return {"id": lead.id, "status": lead.status, "interest_level": lead.interest_level}
@@ -558,11 +712,30 @@ def create_lead(request: LeadRequest, user: User = Depends(current_user), db: Se
 def admin_overview(user: User = Depends(current_user), db: Session = Depends(db_session)) -> dict:
     if user.role != "admin":
         raise HTTPException(403, "Administrator access required")
+    total_students = db.scalar(select(func.count(User.id)).where(User.role == "student")) or 0
+    active_since = datetime.utcnow().timestamp() - 30 * 24 * 60 * 60
+    active_students = db.scalar(
+        select(func.count(func.distinct(ActivityEvent.user_id))).where(
+            ActivityEvent.created_at >= datetime.fromtimestamp(active_since)
+        )
+    ) or 0
+    total_leads = db.scalar(select(func.count(Lead.id))) or 0
+    pending_leads = db.scalar(
+        select(func.count(Lead.id)).where(Lead.status.in_(("New", "Submitted", "Follow-up Required")))
+    ) or 0
+    converted_leads = db.scalar(select(func.count(Lead.id)).where(Lead.status == "Converted")) or 0
     return {
-        "students": db.scalar(select(func.count(User.id)).where(User.role == "student")) or 0,
+        "students": total_students,
+        "total_registered_students": total_students,
+        "active_students": active_students,
         "conversations": db.scalar(select(func.count(Conversation.id))) or 0,
-        "leads": db.scalar(select(func.count(Lead.id))) or 0,
+        "leads": total_leads,
+        "total_admission_enquiries": total_leads,
+        "pending_enquiries": pending_leads,
+        "converted_leads": converted_leads,
+        "total_course_interests": db.scalar(select(func.count(CourseInterest.id))) or 0,
         "indexed_documents": len(list(settings.extracted_directory.glob("*.json"))),
+        "indexed_knowledge_documents": len(list(settings.extracted_directory.glob("*.json"))),
     }
 
 
@@ -602,7 +775,25 @@ def admin_leads(user: User = Depends(current_user), db: Session = Depends(db_ses
     if user.role != "admin":
         raise HTTPException(403, "Administrator access required")
     leads = db.scalars(select(Lead).order_by(Lead.created_at.desc())).all()
-    return [{"id": lead.id, "user_id": lead.user_id, "programme": lead.programme, "status": lead.status, "interest_level": lead.interest_level, "notes": lead.notes, "created_at": lead.created_at.isoformat()} for lead in leads]
+    return [
+        {
+            "id": lead.id,
+            "user_id": lead.user_id,
+            "student_name": lead.user.name,
+            "student_email": lead.user.email,
+            "student_phone": lead.user.profile.phone if lead.user.profile else "",
+            "programme": lead.programme,
+            "academic_qualification": lead.academic_qualification,
+            "admission_year": lead.user.profile.admission_year if lead.user.profile else "",
+            "preferred_department": lead.user.profile.preferred_department if lead.user.profile else "",
+            "interests": lead.user.profile.interests if lead.user.profile else "",
+            "status": lead.status,
+            "interest_level": lead.interest_level,
+            "notes": lead.notes,
+            "created_at": lead.created_at.isoformat(),
+        }
+        for lead in leads
+    ]
 
 
 @app.patch("/api/v1/admin/leads/{lead_id}")
@@ -617,8 +808,129 @@ def update_lead(lead_id: int, request: LeadUpdateRequest, user: User = Depends(c
         if value is not None:
             setattr(lead, field, value)
     audit(db, user.id, "update", f"lead:{lead_id}")
+    record_activity(
+        db,
+        lead.user_id,
+        "enquiry_status_updated",
+        f"Enquiry status changed to {lead.status}",
+        lead.programme,
+        lead.id,
+    )
+    notify_user(
+        db,
+        lead.user_id,
+        "enquiry_status",
+        "Enquiry status updated",
+        f"Your enquiry status is now {lead.status}.",
+    )
     db.commit()
     return {"id": lead.id, "status": lead.status, "interest_level": lead.interest_level}
+
+
+@app.get("/api/v1/admin/users")
+def admin_users(user: User = Depends(current_user), db: Session = Depends(db_session)) -> list[dict]:
+    if user.role != "admin":
+        raise HTTPException(403, "Administrator access required")
+    users = db.scalars(select(User).order_by(User.created_at.desc())).all()
+    result = []
+    for student in users:
+        profile = student.profile
+        lead_count = db.scalar(select(func.count(Lead.id)).where(Lead.user_id == student.id)) or 0
+        conversation_count = db.scalar(
+            select(func.count(Conversation.id)).where(Conversation.user_id == student.id)
+        ) or 0
+        last_activity = db.scalar(
+            select(ActivityEvent.created_at)
+            .where(ActivityEvent.user_id == student.id)
+            .order_by(ActivityEvent.created_at.desc())
+            .limit(1)
+        )
+        result.append(
+            {
+                "id": student.id,
+                "name": student.name,
+                "email": student.email,
+                "role": student.role,
+                "phone": profile.phone if profile else "",
+                "registration_date": student.created_at.isoformat(),
+                "last_login": (
+                    db.scalar(
+                        select(ActivityEvent.created_at)
+                        .where(ActivityEvent.user_id == student.id, ActivityEvent.activity_type == "login")
+                        .order_by(ActivityEvent.created_at.desc())
+                        .limit(1)
+                    )
+                    or None
+                ),
+                "login_status": bool(last_activity and (datetime.utcnow() - last_activity).total_seconds() < 1800),
+                "interested_school": "",
+                "interested_department": profile.preferred_department if profile else "",
+                "interested_course": profile.interested_programme if profile else "",
+                "conversations": conversation_count,
+                "enquiries": lead_count,
+                "enquiry_status": (
+                    db.scalar(
+                        select(Lead.status)
+                        .where(Lead.user_id == student.id)
+                        .order_by(Lead.created_at.desc())
+                        .limit(1)
+                    )
+                    or "None"
+                ),
+                "last_activity": last_activity.isoformat() if last_activity else None,
+            }
+        )
+    return result
+
+
+@app.get("/api/v1/admin/activity")
+def admin_activity(
+    user_id: int | None = None,
+    activity_type: str | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(db_session),
+) -> list[dict]:
+    if user.role != "admin":
+        raise HTTPException(403, "Administrator access required")
+    query = select(ActivityEvent)
+    if user_id:
+        query = query.where(ActivityEvent.user_id == user_id)
+    if activity_type:
+        query = query.where(ActivityEvent.activity_type == activity_type)
+    query = query.order_by(ActivityEvent.created_at.desc()).limit(500)
+    rows = db.scalars(query).all()
+    return [
+        {
+            "id": row.id,
+            "user_id": row.user_id,
+            "activity_type": row.activity_type,
+            "description": row.description,
+            "programme": row.programme,
+            "lead_id": row.lead_id,
+            "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+@app.get("/api/v1/admin/course-interests")
+def admin_course_interests(user: User = Depends(current_user), db: Session = Depends(db_session)) -> list[dict]:
+    if user.role != "admin":
+        raise HTTPException(403, "Administrator access required")
+    rows = db.scalars(select(CourseInterest).order_by(CourseInterest.updated_at.desc())).all()
+    return [
+        {
+            "id": row.id,
+            "user_id": row.user_id,
+            "student_name": db.get(User, row.user_id).name,
+            "school": row.school,
+            "department": row.department,
+            "programme": row.programme,
+            "status": row.status,
+            "updated_at": row.updated_at.isoformat(),
+        }
+        for row in rows
+    ]
 
 
 @app.post("/api/v1/admin/follow-ups")
@@ -634,6 +946,8 @@ def create_follow_up(request: FollowUpRequest, user: User = Depends(current_user
         raise HTTPException(422, "due_at must be an ISO datetime") from error
     follow_up = FollowUp(lead_id=lead.id, due_at=due_at, notes=request.notes)
     db.add(follow_up)
+    record_activity(db, lead.user_id, "follow_up_scheduled", "A counsellor follow-up was scheduled", lead.programme, lead.id)
+    notify_user(db, lead.user_id, "callback_scheduled", "Callback scheduled", f"A counsellor follow-up is scheduled for {due_at.isoformat()}.")
     audit(db, user.id, "create", f"follow_up:{lead.id}")
     db.commit()
     db.refresh(follow_up)
@@ -658,6 +972,11 @@ def update_follow_up(follow_up_id: int, request: StatusUpdateRequest, user: User
     if request.status not in {"Pending", "In Progress", "Completed", "Cancelled"}:
         raise HTTPException(422, "Unsupported follow-up status")
     follow_up.status = request.status
+    lead = db.get(Lead, follow_up.lead_id)
+    if lead:
+        record_activity(db, lead.user_id, "follow_up_status", f"Follow-up status changed to {request.status}", lead.programme, lead.id)
+        if request.status in {"Completed", "Cancelled"}:
+            notify_user(db, lead.user_id, "follow_up_status", "Follow-up updated", f"Your counsellor follow-up is {request.status.lower()}.")
     audit(db, user.id, "update", f"follow_up:{follow_up_id}", request.status)
     db.commit()
     return {"id": follow_up.id, "status": follow_up.status}
