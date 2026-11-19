@@ -246,7 +246,7 @@ def extract_documents(user: User = Depends(current_user)) -> list[ExtractionResu
 async def upload_document(file: UploadFile = File(...), user: User = Depends(current_user), db: Session = Depends(db_session)) -> dict:
     if user.role != "admin":
         raise HTTPException(403, "Administrator access required")
-    allowed = {".pdf", ".docx", ".pptx", ".xlsx", ".csv", ".txt", ".json"}
+    allowed = {".pdf", ".docx", ".pptx", ".txt", ".xlsx", ".csv", ".json"}
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in allowed:
         raise HTTPException(415, "Unsupported document type")

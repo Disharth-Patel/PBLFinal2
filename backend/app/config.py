@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
     rate_limit_requests: int = 60
     upload_directory: Path = Path(__file__).resolve().parents[2] / "data" / "uploads"
-    max_upload_bytes: int = 25 * 1024 * 1024
+    max_upload_bytes: int = 50 * 1024 * 1024
     whisper_model: str = "small"
     piper_executable: str = "piper"
     piper_voice: Path | None = None
