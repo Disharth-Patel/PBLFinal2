@@ -1,6 +1,7 @@
 import json
 import csv
 import io
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -49,6 +50,7 @@ from app.services.rag import (
     embed_texts,
     generate_answer,
     grounded_prompt,
+    has_verified_context,
     load_chunks,
     load_index,
     retrieve,
@@ -234,7 +236,9 @@ def source_documents() -> list[SourceDocument]:
 
 
 @app.post("/api/v1/source-documents/extract", response_model=list[ExtractionResult])
-def extract_documents() -> list[ExtractionResult]:
+def extract_documents(user: User = Depends(current_user)) -> list[ExtractionResult]:
+    if user.role != "admin":
+        raise HTTPException(403, "Administrator access required")
     return extract_source_documents(settings.source_directory, settings.extracted_directory)
 
 
@@ -343,7 +347,7 @@ def delete_document(document_id: int, user: User = Depends(current_user), db: Se
 
 
 @app.post("/api/v1/knowledge/index", response_model=IndexResult)
-async def index_knowledge(user: User = Depends(current_user)) -> IndexResult:
+async def index_knowledge(user: User = Depends(current_user), db: Session = Depends(db_session)) -> IndexResult:
     if user.role != "admin":
         raise HTTPException(403, "Administrator access required")
     chunks = load_chunks(settings.extracted_directory, settings.chunk_size, settings.chunk_overlap)
@@ -352,10 +356,12 @@ async def index_knowledge(user: User = Depends(current_user)) -> IndexResult:
     try:
         embeddings = await embed_texts(settings.ollama_base_url, settings.embedding_model, [chunk["text"] for chunk in chunks])
     except Exception as error:
-        raise HTTPException(502, f"Local embedding request failed: {error}") from error
+        raise HTTPException(503, f"Local Ollama embedding service is unavailable: {error}") from error
     if len(embeddings) != len(chunks):
         raise HTTPException(502, "Embedding service returned an incomplete result")
     save_index(settings.vector_index_path, chunks, embeddings)
+    audit(db, user.id, "reindex", "knowledge", f"chunks={len(chunks)} embedded={len(embeddings)}")
+    db.commit()
     return IndexResult(chunks=len(chunks), embedded=len(embeddings), output_path=str(settings.vector_index_path), status="indexed")
 
 
@@ -370,7 +376,7 @@ async def retrieve_knowledge(request: RetrievalRequest, user: User = Depends(cur
             query_embedding = (await embed_texts(settings.ollama_base_url, settings.embedding_model, [request.query]))[0]
             matches = vector_retrieve(query_embedding, index, request.limit, scope)
         except Exception as error:
-            raise HTTPException(502, f"Local retrieval request failed: {error}") from error
+            raise HTTPException(503, f"Local Ollama retrieval service is unavailable: {error}") from error
     else:
         matches = retrieve(request.query, load_chunks(settings.extracted_directory, settings.chunk_size, settings.chunk_overlap), request.limit, scope)
     return [RetrievalResult(**match) for match in matches]
@@ -394,6 +400,7 @@ def register(request: RegisterRequest, db: Session = Depends(db_session)) -> Aut
         raise HTTPException(409, "An account with this email already exists")
     user = User(name=request.name.strip(), email=email, password_hash=hash_password(request.password))
     db.add(user)
+    db.flush()
     record_activity(db, user.id, "registration", "Created an admissions account")
     db.commit()
     db.refresh(user)
@@ -466,6 +473,7 @@ def own_leads(user: User = Depends(current_user), db: Session = Depends(db_sessi
         {
             "id": row.id,
             "programme": row.programme,
+            "phone": row.phone,
             "status": row.status,
             "interest_level": row.interest_level,
             "notes": row.notes,
@@ -536,6 +544,9 @@ def get_profile(user: User = Depends(current_user), db: Session = Depends(db_ses
 
 @app.put("/api/v1/profile")
 def update_profile(request: ProfileRequest, user: User = Depends(current_user), db: Session = Depends(db_session)) -> dict:
+    phone_digits = re.sub(r"\D", "", request.phone)
+    if len(phone_digits) < 7:
+        raise HTTPException(422, "A valid mobile number is required")
     profile = db.scalar(select(StudentProfile).where(StudentProfile.user_id == user.id))
     if not profile:
         profile = StudentProfile(user_id=user.id)
@@ -638,7 +649,7 @@ async def chat(request: ChatRequest, user: User = Depends(current_user), db: Ses
             query_embedding = (await embed_texts(settings.ollama_base_url, settings.embedding_model, [request.message]))[0]
             sources = vector_retrieve(query_embedding, index, 5, scope)
         except Exception as error:
-            raise HTTPException(502, f"Local retrieval request failed: {error}") from error
+            raise HTTPException(503, f"Local Ollama retrieval service is unavailable: {error}") from error
         lexical_sources = retrieve(
             request.message,
             load_chunks(settings.extracted_directory, settings.chunk_size, settings.chunk_overlap),
@@ -650,6 +661,13 @@ async def chat(request: ChatRequest, user: User = Depends(current_user), db: Ses
         sources = sources[:8]
     else:
         sources = retrieve(request.message, load_chunks(settings.extracted_directory, settings.chunk_size, settings.chunk_overlap), scope=scope)
+    unavailable_answer = "I couldn't find verified information about this specific query in the available institutional records. Please contact the relevant admission department for confirmation."
+    if not has_verified_context(sources):
+        answer = unavailable_answer
+        db.add(Message(conversation_id=conversation.id, role="user", content=request.message))
+        db.add(Message(conversation_id=conversation.id, role="assistant", content=answer, sources="[]"))
+        db.commit()
+        return ChatResponse(conversation_id=conversation.id, answer=answer, sources=[])
     active_model = request.model
     if not active_model:
         configured = db.scalar(select(ModelConfiguration).where(ModelConfiguration.active.is_(True)))
@@ -670,11 +688,11 @@ async def chat(request: ChatRequest, user: User = Depends(current_user), db: Ses
             scope,
             temperature=configured.temperature if configured else 0.0,
             top_p=configured.top_p if configured else 1.0,
-            context_length=configured.context_length if configured else 4096,
-            max_tokens=configured.max_tokens if configured else 512,
+            context_length=configured.context_length if configured else 2048,
+            max_tokens=configured.max_tokens if configured else 256,
         )
     except Exception as error:
-        raise HTTPException(502, f"Local Ollama request failed: {error}") from error
+        raise HTTPException(503, f"Local Ollama generation service is unavailable: {error}") from error
     if scope.get("information_type") == "contact_information":
         answer = structured_contact_answer(sources) or answer
     db.add(Message(conversation_id=conversation.id, role="user", content=request.message))
@@ -696,9 +714,23 @@ async def chat(request: ChatRequest, user: User = Depends(current_user), db: Ses
 def create_lead(request: LeadRequest, user: User = Depends(current_user), db: Session = Depends(db_session)) -> dict:
     if user.role == "admin":
         raise HTTPException(403, "Administrators can review enquiries but cannot submit them")
-    lead = Lead(user_id=user.id, programme=request.programme, academic_qualification=request.academic_qualification, notes=request.notes)
+    phone = re.sub(r"[^\d+]", "", request.phone)
+    if len(re.sub(r"\D", "", phone)) < 7:
+        raise HTTPException(422, "A valid mobile number is required")
+    lead = Lead(
+        user_id=user.id,
+        programme=request.programme,
+        academic_qualification=request.academic_qualification,
+        phone=phone,
+        notes=request.notes,
+    )
     db.add(lead)
     db.flush()
+    profile = db.scalar(select(StudentProfile).where(StudentProfile.user_id == user.id))
+    if not profile:
+        profile = StudentProfile(user_id=user.id)
+        db.add(profile)
+    profile.phone = phone
     audit(db, user.id, "create", "lead")
     record_activity(db, user.id, "enquiry_submitted", "Submitted an admission enquiry", request.programme, lead.id)
     notify_user(db, user.id, "enquiry_received", "Enquiry received", "Your admission enquiry has been submitted.")
@@ -745,7 +777,7 @@ def get_model_configuration(user: User = Depends(current_user), db: Session = De
         raise HTTPException(403, "Administrator access required")
     config = db.scalar(select(ModelConfiguration).where(ModelConfiguration.active.is_(True)))
     if not config:
-        return {"model_name": "qwen2.5:1.5b-instruct", "temperature": 0.0, "top_p": 1.0, "context_length": 4096, "max_tokens": 512, "active": False}
+        return {"model_name": "qwen2.5:1.5b-instruct", "temperature": 0.0, "top_p": 1.0, "context_length": 2048, "max_tokens": 256, "active": False}
     return {field: getattr(config, field) for field in ("model_name", "temperature", "top_p", "context_length", "max_tokens", "active")}
 
 
@@ -781,7 +813,7 @@ def admin_leads(user: User = Depends(current_user), db: Session = Depends(db_ses
             "user_id": lead.user_id,
             "student_name": lead.user.name,
             "student_email": lead.user.email,
-            "student_phone": lead.user.profile.phone if lead.user.profile else "",
+            "student_phone": lead.phone or (lead.user.profile.phone if lead.user.profile else ""),
             "programme": lead.programme,
             "academic_qualification": lead.academic_qualification,
             "admission_year": lead.user.profile.admission_year if lead.user.profile else "",
@@ -1026,9 +1058,10 @@ def export_leads(user: User = Depends(current_user), db: Session = Depends(db_se
         raise HTTPException(403, "Administrator access required")
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["id", "user_id", "programme", "academic_qualification", "status", "interest_level", "notes", "created_at"])
+    writer.writerow(["id", "user_id", "student_name", "student_email", "phone", "programme", "academic_qualification", "status", "interest_level", "notes", "created_at"])
     for lead in db.scalars(select(Lead).order_by(Lead.created_at.desc())):
-        writer.writerow([lead.id, lead.user_id, lead.programme, lead.academic_qualification, lead.status, lead.interest_level, lead.notes, lead.created_at.isoformat()])
+        phone = lead.phone or (lead.user.profile.phone if lead.user.profile else "")
+        writer.writerow([lead.id, lead.user_id, lead.user.name, lead.user.email, phone, lead.programme, lead.academic_qualification, lead.status, lead.interest_level, lead.notes, lead.created_at.isoformat()])
     return StreamingResponse(iter([buffer.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=admission-leads.csv"})
 
 

@@ -1,6 +1,8 @@
 .conversation-history{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .admin-actions{display:flex;gap:10px;align-items:center}
 .admin-actions input{display:none}
+.admin-actions label{cursor:pointer}
+.button:disabled{cursor:not-allowed;opacity:.65}
 .history-item{display:flex;border:1px solid #e1e7f0;border-radius:8px;overflow:hidden;background:#fff}
 .history-item button{border:0;background:#fff;color:#53617a;padding:7px 10px;font-size:11px}
 .history-item .history-delete{color:#a16672;border-left:1px solid #edf0f5;padding:7px}
@@ -28,4 +30,4 @@
 .detail-grid b{color:#6d798d}
 .detail-notes,.detail-status{display:grid;gap:7px;color:#6d798d;font-size:12px;margin-top:14px}
 .detail-notes textarea,.detail-status select{border:1px solid #dce2ed;border-radius:7px;padding:10px;color:#53617a;background:#fff}
-@media(max-width:800px){.model-form{grid-template-columns:1fr}}
+@media(max-width:800px){.model-form{grid-template-columns:1fr}.enquiry-filters{flex-direction:column}.detail-grid{grid-template-columns:1fr}}

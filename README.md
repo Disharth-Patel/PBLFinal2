@@ -16,7 +16,24 @@ See:
 
 ## Run the whole project
 
-### 1. Start the backend
+### 1. Start Ollama
+
+Open a terminal and run:
+
+```powershell
+ollama serve
+```
+
+Keep it running. Verify it is available at `http://127.0.0.1:11434`:
+
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:11434/api/tags
+```
+
+The required installed models are `all-minilm:latest` for embeddings and one
+generation model such as `qwen2.5:1.5b-instruct`.
+
+### 2. Start the backend
 
 ```powershell
 Set-Location D:\PBLFinal2\backend
@@ -40,7 +57,7 @@ Set-Location D:\PBLFinal2\backend
 The service info check is available at `http://127.0.0.1:8000/`, and the API health
 check is available at `http://127.0.0.1:8000/health`.
 
-### 2. Seed demo accounts
+### 3. Seed demo accounts
 
 Run this in a second PowerShell terminal after the backend starts:
 
@@ -54,7 +71,7 @@ Demo credentials:
 - Admin: `admin@mitadt.local` / `admin-demo-123`
 - Student: `student@mitadt.local` / `student-demo-123`
 
-### 3. Start the frontend
+### 4. Start the frontend
 
 Run this in a third PowerShell terminal:
 
@@ -88,6 +105,18 @@ run knowledge indexing after upload or OCR to refresh embeddings.
 Remaining roadmap work includes native OCR/voice runtime installation, richer admin
 management, fine-tuning preparation and expanded automated coverage. These are not
 represented as working features until implemented and tested.
+
+### Recent operational fixes
+
+- Uploaded documents are extracted immediately; use **Re-index knowledge** after
+  upload or OCR to rebuild `data/embeddings/index.json`.
+- Unsupported questions now stop at retrieval and return an unavailable-information
+  response without fabricated source page references.
+- Generation defaults use a smaller context and token limit for faster local replies.
+- Admission lead submission requires a valid mobile number, which is stored with
+  the lead and profile and included in admin views and CSV exports.
+
+For a complete project walkthrough, see [Project Study Guide](documentation/project-study-guide.md).
 
 ## Current capability blockers
 

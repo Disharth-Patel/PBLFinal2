@@ -87,6 +87,7 @@ class ChatResponse(BaseModel):
 class LeadRequest(BaseModel):
     programme: str | None = None
     academic_qualification: str | None = None
+    phone: str
     notes: str = ""
 
 

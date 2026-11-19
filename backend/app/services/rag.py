@@ -288,6 +288,22 @@ def structured_contact_answer(context: list[dict[str, object]]) -> str | None:
     return "\n".join(contacts) if contacts else None
 
 
+def has_verified_context(context: list[dict[str, object]]) -> bool:
+    if not context:
+        return False
+    for item in context:
+        text = re.sub(r"\s+", " ", str(item.get("text", ""))).strip()
+        if len(text) < 20:
+            continue
+        try:
+            score = float(item.get("score", 0.0))
+        except (TypeError, ValueError):
+            score = 0.0
+        if score >= 0.12:
+            return True
+    return False
+
+
 async def generate_answer(
     base_url: str,
     model: str,
@@ -297,8 +313,8 @@ async def generate_answer(
     scope: dict[str, str | None] | None = None,
     temperature: float = 0.0,
     top_p: float = 1.0,
-    context_length: int = 4096,
-    max_tokens: int = 512,
+    context_length: int = 2048,
+    max_tokens: int = 256,
 ) -> str:
     prompt = grounded_prompt(question, context, history, scope)
     async with httpx.AsyncClient(timeout=90) as client:

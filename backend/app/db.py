@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, create_engine
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 from app.config import settings
@@ -87,6 +87,7 @@ class Lead(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     programme: Mapped[str | None] = mapped_column(String(200), nullable=True)
     academic_qualification: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    phone: Mapped[str] = mapped_column(String(40), default="")
     status: Mapped[str] = mapped_column(String(40), default="New")
     interest_level: Mapped[str] = mapped_column(String(40), default="Medium")
     notes: Mapped[str] = mapped_column(Text, default="")
@@ -195,3 +196,8 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
+    if db_url.startswith("sqlite"):
+        with engine.begin() as connection:
+            columns = {row[1] for row in connection.execute(text("PRAGMA table_info(leads)"))}
+            if "phone" not in columns:
+                connection.execute(text("ALTER TABLE leads ADD COLUMN phone VARCHAR(40) NOT NULL DEFAULT ''"))

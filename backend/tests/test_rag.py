@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from app.schemas import ChatResponse
-from app.services.rag import load_chunks, retrieve, structured_contact_answer, understand_query, vector_retrieve
+from app.services.rag import has_verified_context, load_chunks, retrieve, structured_contact_answer, understand_query, vector_retrieve
 
 
 def test_chunks_preserve_source_locations() -> None:
@@ -119,3 +119,11 @@ def test_structured_contact_answer_includes_name_and_number() -> None:
         }]
     )
     assert answer == "School of Computing (SOC): Dr. Ramesh Mali — 9890032120"
+
+
+def test_empty_retrieval_is_not_verified_context() -> None:
+    assert has_verified_context([]) is False
+
+
+def test_low_score_retrieval_is_not_verified_context() -> None:
+    assert has_verified_context([{"text": "a short unrelated passage", "score": 0.05}]) is False
